@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Edit3, Eye, MessageCircle, Heart, Lightbulb, Copy, Download } from 'lucide-react';
 
@@ -17,7 +19,7 @@ const TheatreEmailComposer = () => {
       title: 'Kind Script Pass',
       template: `Dear {recipientName},
 
-Thank you for sharing {playTitle} with us. I had the chance to read through the script and found {customDetails} compelling elements in your work. The writing shows real talent and thoughtful character development.
+Thank you for sharing {playTitle} with us. I had the chance to read through the script and found {customDetails}compelling elements in your work. The writing shows real talent and thoughtful character development.
 
 While this particular piece doesn't align with our current programming priorities, I genuinely appreciate the opportunity to experience your storytelling. Your voice as a playwright comes through clearly, and I'm eager to see how your work continues to evolve.
 
@@ -480,4 +482,6 @@ With heartfelt appreciation,`
   );
 };
 
-export default TheatreEmailComposer;
+export default function Home() {
+  return <TheatreEmailComposer />;
+}
