@@ -1,7 +1,5 @@
-'use client'
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Edit3, Eye, MessageCircle, Heart, Lightbulb, Copy, Download, Sparkles, Plus, RefreshCw } from 'lucide-react';
+import { Send, Edit3, Eye, MessageCircle, Heart, Lightbulb, Copy, Download } from 'lucide-react';
 
 const TheatreEmailComposer = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -12,13 +10,6 @@ const TheatreEmailComposer = () => {
   const [toneLevel, setToneLevel] = useState(2);
   const [showEmotionalHighlights, setShowEmotionalHighlights] = useState(true);
   const [emotionalInsights, setEmotionalInsights] = useState([]);
-  const [isClaudeProcessing, setIsClaudeProcessing] = useState(false);
-  const [claudeFeatures, setClaudeFeatures] = useState({
-    improveEmail: false,
-    createTemplate: false,
-    toneAdjustment: false
-  });
-  const [customTemplates, setCustomTemplates] = useState({});
   const textareaRef = useRef(null);
 
   const templates = {
@@ -26,7 +17,7 @@ const TheatreEmailComposer = () => {
       title: 'Kind Script Pass',
       template: `Dear {recipientName},
 
-Thank you for sharing {playTitle} with us. I had the chance to read through the script and found {customDetails}compelling elements in your work. The writing shows real talent and thoughtful character development.
+Thank you for sharing {playTitle} with us. I had the chance to read through the script and found {customDetails} compelling elements in your work. The writing shows real talent and thoughtful character development.
 
 While this particular piece doesn't align with our current programming priorities, I genuinely appreciate the opportunity to experience your storytelling. Your voice as a playwright comes through clearly, and I'm eager to see how your work continues to evolve.
 
@@ -123,6 +114,36 @@ The script is now in our review process, and {customDetails} I'll be in touch as
 In the meantime, please know how much we value writers who share their work with us. The creative courage it takes to put stories into the world is something we never take for granted.
 
 Looking forward to being in touch soon,`
+    },
+    'post_reading_followup': {
+      title: 'Post-Reading Follow-Up - Next Steps',
+      template: `Dear {recipientName},
+
+I hope this finds you well. I wanted to reach out while the energy from our reading of {playTitle} is still fresh in my mind – what an incredible evening that was.
+
+The response from everyone in the room was genuinely electric. {customDetails} The way your characters breathed life into our space and the conversations that continued long after we finished tell me everything I need to know about the power of this work.
+
+I'd love to sit down with you soon to discuss where we might take this next. I have some thoughts about potential development opportunities and would be eager to hear your vision for the play's future.
+
+Would you have time for coffee or a call in the coming week? I'm flexible with timing and happy to work around your schedule.
+
+Thank you again for sharing your beautiful work with us. I'm excited about the possibility of continuing this journey together.
+
+Warmest regards,`
+    },
+    'donor_thanks': {
+      title: 'Donor Appreciation for Reading Support',
+      template: `Dear {recipientName},
+
+I hope this note finds you well. I wanted to reach out personally to thank you for your generous support of our recent reading of {playTitle}.
+
+{customDetails} Your belief in the power of new work development makes evenings like this possible, and the impact ripples through our entire artistic community. The playwright was deeply moved to know that supporters like you champion emerging voices.
+
+These readings are where magic happens – where new stories find their breath and where artists discover what's possible. Your investment in this process is an investment in the future of theatre itself.
+
+We're grateful to have you as part of our artistic family and look forward to sharing more exciting developments with you soon.
+
+With heartfelt appreciation,`
     }
   };
 
@@ -173,156 +194,46 @@ Looking forward to being in touch soon,`
     'Very Personal'
   ];
 
-  const improveEmailWithClaude = async () => {
-    if (!emailContent || !recipientName || !playTitle) {
-      alert('Please fill in recipient name, play title, and select a template first.');
-      return;
-    }
+  // Enhanced tone adjustment function
+  const applyToneAdjustments = (content, level) => {
+    let adjustedContent = content;
 
-    setIsClaudeProcessing(true);
-    
-    const prompt = `You are helping a theatre director compose professional, kind emails. 
-
-Context:
-- Email type: ${selectedTemplate}
-- Recipient: ${recipientName}
-- Play: ${playTitle}
-- Current draft: "${emailContent}"
-
-The user wants to improve this email to be more personal and emotionally connecting while maintaining professionalism appropriate for theatre development work.
-
-Respond with ONLY a valid JSON object:
-{
-  "improvedEmail": "the complete improved email text",
-  "emotionalImprovements": ["list of specific emotional language additions made"],
-  "reasoning": "brief explanation of changes made"
-}
-
-DO NOT include anything other than the JSON object.`;
-
-    try {
-      const response = await window.claude.complete(prompt);
-      const parsed = JSON.parse(response);
-      setEmailContent(parsed.improvedEmail);
+    if (level === 0) {
+      // Very Formal
+      adjustedContent = adjustedContent.replace(/Warmly,/g, 'Sincerely,');
+      adjustedContent = adjustedContent.replace(/Best,/g, 'Regards,');
+      adjustedContent = adjustedContent.replace(/With warm regards,/g, 'Respectfully,');
+      adjustedContent = adjustedContent.replace(/I'm excited/g, 'I would be pleased');
+      adjustedContent = adjustedContent.replace(/I'd love to/g, 'I would be happy to');
+    } else if (level === 1) {
+      // Professional
+      adjustedContent = adjustedContent.replace(/Warmly,/g, 'Best regards,');
+      adjustedContent = adjustedContent.replace(/I'm excited/g, 'I am pleased');
+    } else if (level >= 3) {
+      // Personal & Warm / Very Personal
+      adjustedContent = adjustedContent.replace(/Sincerely,/g, 'Warmly,');
+      adjustedContent = adjustedContent.replace(/Regards,/g, 'With warm regards,');
+      adjustedContent = adjustedContent.replace(/Best regards,/g, 'Warmly,');
       
-      // Show improvement feedback
-      alert(`Email improved! Key changes: ${parsed.reasoning}\n\nEmotional improvements: ${parsed.emotionalImprovements.join(', ')}`);
-    } catch (error) {
-      console.error('Error improving email:', error);
-      alert('Sorry, there was an error improving the email. Please try again.');
-    } finally {
-      setIsClaudeProcessing(false);
+      if (level === 4) {
+        // Very Personal
+        adjustedContent = adjustedContent.replace(/I would be pleased/g, 'I\'m genuinely excited');
+        adjustedContent = adjustedContent.replace(/I am pleased/g, 'I\'m thrilled');
+      }
     }
+
+    return adjustedContent;
   };
-
-  const createCustomTemplate = async () => {
-    const templateDescription = prompt('Describe the type of email template you need:\n\nExample: "An email to thank a donor for supporting a reading" or "Follow-up after meeting a playwright at a conference"');
-    
-    if (!templateDescription) return;
-
-    setIsClaudeProcessing(true);
-
-    const claudePrompt = `You are helping a theatre director create a new email template for their professional correspondence.
-
-They need: "${templateDescription}"
-
-Create this email template in the same style as professional theatre correspondence - warm, relationship-focused, honest, and encouraging.
-
-Respond with ONLY a valid JSON object:
-{
-  "templateName": "brief name for this template",
-  "template": "the email template with {recipientName}, {playTitle}, and {customDetails} placeholders where appropriate",
-  "description": "what this template is for",
-  "emotionalElements": ["list of emotional language types included"]
-}
-
-DO NOT include anything other than the JSON object.`;
-
-    try {
-      const response = await window.claude.complete(claudePrompt);
-      const parsed = JSON.parse(response);
-      
-      // Add to custom templates
-      const templateKey = `custom_${Date.now()}`;
-      const newTemplate = {
-        title: parsed.templateName,
-        template: parsed.template,
-        description: parsed.description
-      };
-      
-      setCustomTemplates(prev => ({
-        ...prev,
-        [templateKey]: newTemplate
-      }));
-      
-      // Auto-select the new template
-      setSelectedTemplate(templateKey);
-      
-      alert(`Custom template created: "${parsed.templateName}"\n\nDescription: ${parsed.description}\n\nEmotional elements included: ${parsed.emotionalElements.join(', ')}`);
-    } catch (error) {
-      console.error('Error creating custom template:', error);
-      alert('Sorry, there was an error creating the template. Please try again.');
-    } finally {
-      setIsClaudeProcessing(false);
-    }
-  };
-
-  const adjustToneWithClaude = async (targetTone) => {
-    if (!emailContent) {
-      alert('Please compose an email first.');
-      return;
-    }
-
-    setIsClaudeProcessing(true);
-
-    const tonePrompt = `You are helping a theatre director adjust the tone of their professional email.
-
-Current email:
-"${emailContent}"
-
-Please adjust this email to be more ${targetTone} while maintaining the core message and professional theatre industry standards.
-
-Respond with ONLY a valid JSON object:
-{
-  "adjustedEmail": "the email with adjusted tone",
-  "toneChanges": ["list of specific changes made to achieve the desired tone"],
-  "reasoning": "brief explanation of the tone adjustment approach"
-}
-
-DO NOT include anything other than the JSON object.`;
-
-    try {
-      const response = await window.claude.complete(tonePrompt);
-      const parsed = JSON.parse(response);
-      setEmailContent(parsed.adjustedEmail);
-      
-      alert(`Tone adjusted to be more ${targetTone}!\n\nChanges made: ${parsed.reasoning}\n\nSpecific adjustments: ${parsed.toneChanges.join(', ')}`);
-    } catch (error) {
-      console.error('Error adjusting tone:', error);
-      alert('Sorry, there was an error adjusting the tone. Please try again.');
-    } finally {
-      setIsClaudeProcessing(false);
-    }
-  };
-
-  // Combine built-in templates with custom templates
-  const allTemplates = { ...templates, ...customTemplates };
 
   useEffect(() => {
-    if (selectedTemplate && allTemplates[selectedTemplate]) {
-      let content = allTemplates[selectedTemplate].template;
+    if (selectedTemplate && templates[selectedTemplate]) {
+      let content = templates[selectedTemplate].template;
       content = content.replace(/{recipientName}/g, recipientName || '[Recipient Name]');
       content = content.replace(/{playTitle}/g, playTitle || '[Play Title]');
       content = content.replace(/{customDetails}/g, customDetails || '[Custom Details] ');
       
-      // Tone adjustments
-      if (toneLevel === 0) {
-        content = content.replace(/Warmly,/g, 'Sincerely,');
-        content = content.replace(/Best,/g, 'Regards,');
-      } else if (toneLevel >= 3) {
-        content = content.replace(/Sincerely,/g, 'Warmly,');
-        content = content.replace(/Regards,/g, 'With warm regards,');
-      }
+      // Apply tone adjustments
+      content = applyToneAdjustments(content, toneLevel);
       
       setEmailContent(content);
     }
@@ -361,6 +272,7 @@ DO NOT include anything other than the JSON object.`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(emailContent);
+    alert('Email copied to clipboard!');
   };
 
   const downloadEmail = () => {
@@ -392,11 +304,8 @@ DO NOT include anything other than the JSON object.`;
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select email type...</option>
-                {Object.entries(allTemplates).map(([key, template]) => (
-                  <option key={key} value={key}>
-                    {template.title}
-                    {key.startsWith('custom_') && ' (Custom)'}
-                  </option>
+                {Object.entries(templates).map(([key, template]) => (
+                  <option key={key} value={key}>{template.title}</option>
                 ))}
               </select>
             </div>
@@ -464,55 +373,16 @@ DO NOT include anything other than the JSON object.`;
               </label>
             </div>
 
-            {/* Claude-Powered Features */}
             <div className="border-t pt-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="text-purple-600" size={20} />
-                <h4 className="text-md font-semibold text-gray-800">Claude-Powered Features</h4>
-              </div>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={improveEmailWithClaude}
-                  disabled={isClaudeProcessing || !emailContent}
-                  className="w-full flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-                >
-                  {isClaudeProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {isClaudeProcessing ? 'Improving...' : 'Improve Email with Claude'}
-                </button>
-                
-                <button
-                  onClick={createCustomTemplate}
-                  disabled={isClaudeProcessing}
-                  className="w-full flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-                >
-                  {isClaudeProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Plus size={16} />}
-                  {isClaudeProcessing ? 'Creating...' : 'Create Custom Template'}
-                </button>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => adjustToneWithClaude('warmer and more personal')}
-                    disabled={isClaudeProcessing || !emailContent}
-                    className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-xs"
-                  >
-                    Make Warmer
-                  </button>
-                  <button
-                    onClick={() => adjustToneWithClaude('more formal and professional')}
-                    disabled={isClaudeProcessing || !emailContent}
-                    className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-xs"
-                  >
-                    More Formal
-                  </button>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageCircle className="text-blue-600" size={16} />
+                  <span className="text-sm font-medium text-blue-800">Pro Tip</span>
                 </div>
+                <p className="text-xs text-blue-700">
+                  For AI-powered email improvements and custom template creation, use this tool within Claude.ai where advanced features are available.
+                </p>
               </div>
-              
-              {isClaudeProcessing && (
-                <div className="mt-3 text-xs text-gray-600 text-center">
-                  Claude is working on your request...
-                </div>
-              )}
             </div>
           </div>
 
@@ -610,6 +480,4 @@ DO NOT include anything other than the JSON object.`;
   );
 };
 
-export default function Home() {
-  return <TheatreEmailComposer />;
-}
+export default TheatreEmailComposer;
